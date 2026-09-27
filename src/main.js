@@ -610,6 +610,7 @@ function openStand() {
   const costs = G.openingCosts(s);
   if (s.cash < costs.total) return;
   s.cash = G.r2(s.cash - costs.total);
+  s.inDay = { costs }; // cleared when the day finishes; lets us recover if the app is killed mid-day
   const ad = ADS.find((a) => a.id === s.ad);
   if (ad.cost) G.learn(s, 'ads');
   G.learn(s, 'costPerCup');
@@ -674,6 +675,7 @@ function openStand() {
 }
 
 function finishDay(result, costs) {
+  delete s.inDay;
   if (scene) { scene.destroy(); scene = null; }
   $('#day').hidden = true;
   $('#day').innerHTML = '';
@@ -1028,7 +1030,7 @@ if (Capacitor.isNativePlatform()) {
     if (tab !== 'stand') { tab = 'stand'; render(); return; }
     App.minimizeApp();
   });
-  App.addListener('pause', () => { if (s) G.save(s); });
+  App.addListener('pause', () => { if (scene) scene.finish(); else if (s) G.save(s); });
 }
 
 // ───────── Boot ─────────
@@ -1042,6 +1044,14 @@ function boot() {
     setSound(s.settings.sound);
     G.checkGoals(s);
     render();
+    if (s.inDay) {
+      // The app was closed in the middle of a day: give back today's costs and replay it.
+      s.cash = G.r2(s.cash + s.inDay.costs.total);
+      delete s.inDay;
+      G.save(s);
+      render();
+      toast('Welcome back! Your stand is ready to open again. 🍋');
+    }
     if (s.tutorial === 0) showIntro(0);
   } else {
     $('#hud').innerHTML = '';
@@ -1055,3 +1065,10 @@ void RANKS; void BIZ_LEVEL_MULT; void iceIdeal;
 
 // Dev-only hook for testing in a browser.
 if (import.meta.env && import.meta.env.DEV) window.__lemon = { get s() { return s; }, get scene() { return scene; }, render, G };
+
+// Leaving the app (home button, switching apps, screen off) during a day finishes it and saves.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'hidden') return;
+  if (scene) scene.finish();
+  else if (s) G.save(s);
+});
