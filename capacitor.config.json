@@ -1,0 +1,8 @@
+{
+  "appId": "io.github.z1fire.lemonlane",
+  "appName": "Lemon Lane",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#fff6d9"
+  }
+}
