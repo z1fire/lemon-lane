@@ -89,6 +89,6 @@ const HARD = [
 ];
 
 export function makeQuestion(difficulty, streak = 0) {
-  const pool = difficulty === 'easy' && streak < 5 ? EASY : Math.random() < 0.3 ? EASY : HARD;
+  const pool = difficulty === 'easy' && streak < 5 ? EASY : difficulty !== 'hard' && Math.random() < 0.3 ? EASY : HARD;
   return pick(pool)();
 }

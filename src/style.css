@@ -378,6 +378,12 @@ b, strong { font-weight: 600; }
 }
 .field input:focus { outline: none; border-color: var(--lemon-d); }
 .choice-row { display: flex; gap: 8px; }
+.slot { display: flex; align-items: center; gap: 8px; margin-top: 8px; border: 3px solid transparent; }
+.slot.on { border-color: var(--green); }
+.slot-n { font-size: 22px; font-weight: 700; color: var(--lemon-d); width: 22px; text-align: center; }
+.slot-info { flex: 1; min-width: 0; }
+.slot-info b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot-tag { font-weight: 600; color: var(--green); font-size: 14px; }
 .choice {
   flex: 1; border: 3px solid transparent; background: #fff; border-radius: 16px; padding: 12px 8px; text-align: center; box-shadow: var(--shadow);
 }

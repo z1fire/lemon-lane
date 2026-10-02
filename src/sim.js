@@ -16,7 +16,7 @@ export function cupsPerPitcher(s) {
   return s.upgrades.projuicer ? 12 : s.upgrades.juicer ? 10 : 8;
 }
 export function lemonLife(s) {
-  return (s.upgrades.fridge ? 7 : 4) + (s.difficulty === 'easy' ? 1 : 0);
+  return (s.upgrades.fridge ? 7 : 4) + (s.difficulty === 'easy' ? 1 : s.difficulty === 'hard' ? -1 : 0);
 }
 export const stars = (rep) => Math.max(0, Math.min(5, rep / 20));
 
@@ -67,6 +67,7 @@ export function expectedTraffic(s, locId = s.location, wType = s.weather.forecas
   if (m.traffic) t *= m.traffic;
   if (m.loc && m.loc[locId]) t *= m.loc[locId];
   if (s.difficulty === 'easy') t *= 1.15;
+  if (s.difficulty === 'hard') t *= 0.88;
   return t;
 }
 
@@ -242,6 +243,7 @@ export function simulateDay(s, adBoost = 0, rnd = Math.random) {
   rep -= tally.line * 0.12 + tally.soldout * 0.06;
   if (rep > 0) rep = Math.min(rep, 3.5) * Math.max(0.12, 1.1 - s.rep / 100);
   if (s.difficulty === 'easy' && rep > 0) rep *= 1.25;
+  if (s.difficulty === 'hard' && rep > 0) rep *= 0.8;
   rep = Math.max(-6, Math.min(6, rep));
 
   // Special things from events.

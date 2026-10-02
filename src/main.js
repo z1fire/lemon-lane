@@ -825,14 +825,22 @@ function showQuiz() {
   }));
 }
 
-// ───────── Settings & new game ─────────
+// ───────── Settings, save files & new game ─────────
+const DIFFS = {
+  easy: { icon: '😊', name: 'Easy', blurb: 'More customers, fresher lemons, better forecasts' },
+  normal: { icon: '😎', name: 'Normal', blurb: 'A real business challenge' },
+  hard: { icon: '🔥', name: 'Hard', blurb: 'Fewer customers, pricier supplies, tricky forecasts' },
+};
+const diffLabel = (d) => { const x = DIFFS[d] || DIFFS.normal; return `${x.icon} ${x.name}`; };
+
 function showSettings() {
   modal(`<h2>⚙️ Settings</h2>
     <div class="card">
       <div class="toggle"><span>🔊 Sound effects</span><button class="btn small ${s.settings.sound ? 'green' : 'ghost'}" data-a="toggleSound">${s.settings.sound ? 'ON' : 'OFF'}</button></div>
       <div class="toggle"><span>🏷️ Stand name</span><span class="muted">${s.name ? esc(s.name) : '—'}</span></div>
-      <div class="toggle"><span>🎚️ Difficulty</span><span class="muted">${s.difficulty === 'easy' ? '😊 Easy' : '😎 Normal'}</span></div>
+      <div class="toggle"><span>🎚️ Difficulty</span><span class="muted">${diffLabel(s.difficulty)}</span></div>
       <div class="toggle"><span>📅 Days played</span><span class="muted">${s.day - 1}</span></div>
+      <div class="toggle"><span>💾 Save files</span><button class="btn small" data-a="slots">Switch game</button></div>
       <div class="toggle" style="border:0"><span>🆕 Start over</span><button class="btn small red" data-a="askReset">New game</button></div>
     </div>
     <div class="card" style="margin-top:10px">
@@ -844,21 +852,65 @@ function showSettings() {
 
 function askReset() {
   modal(`<div class="big-emoji">🤔</div><h2>Start a new game?</h2>
-    <div class="lesson-card center">All your money, upgrades and businesses will be gone. This can't be undone!</div>
+    <div class="lesson-card center">All your money, upgrades and businesses in this save file will be gone. This can't be undone!</div>
     <div class="actions"><button class="btn ghost" data-a="closeModal">Keep playing</button><button class="btn red" data-a="doReset">Yes, start over</button></div>`);
 }
 
-function showWelcome() {
+const slotTitle = (x) => (x.name ? `${esc(x.name)}'s Lemonade` : 'Lemonade Stand');
+
+function showSlots() {
+  const slots = G.listSlots();
+  const cur = s ? G.activeSlot() : -1;
+  modal(`<h2>💾 Save Files</h2>
+    <div class="small muted center" style="margin-bottom:6px">You can keep up to ${G.SLOTS} games going at once.</div>
+    ${slots.map((x, i) => `<div class="card slot ${i === cur ? 'on' : ''}">
+      <div class="slot-n">${i + 1}</div>
+      ${x ? `<div class="slot-info"><b>${slotTitle(x)}${x.won ? ' 👑' : ''}</b>
+          <div class="tiny muted">${diffLabel(x.difficulty)} · Day ${x.day} · ${money(x.networth)}</div></div>
+        ${i === cur ? '<span class="slot-tag">Playing</span>' : `<button class="btn small ghost" data-a="askDeleteSlot" data-i="${i}" aria-label="Delete">🗑️</button><button class="btn small green" data-a="playSlot" data-i="${i}">Play</button>`}`
+      : `<div class="slot-info muted">Empty</div><button class="btn small" data-a="newSlot" data-i="${i}">➕ New game</button>`}
+    </div>`).join('')}`, { closable: !!s });
+}
+
+function askDeleteSlot(i) {
+  const x = G.listSlots()[i];
+  if (!x) return;
+  modal(`<div class="big-emoji">🗑️</div><h2>Delete save file ${i + 1}?</h2>
+    <div class="lesson-card center"><b>${slotTitle(x)}</b> (Day ${x.day}) will be gone forever. This can't be undone!</div>
+    <div class="actions"><button class="btn ghost" data-a="closeModal">Keep it</button><button class="btn red" data-a="doDeleteSlot" data-i="${i}">Yes, delete</button></div>`);
+}
+
+// Start playing a game that was just loaded from a save file.
+function startLoaded() {
+  // Fill in anything added in newer versions.
+  const fresh = G.newGame({});
+  for (const k of Object.keys(fresh)) if (s[k] === undefined) s[k] = fresh[k];
+  for (const k of Object.keys(fresh.stats)) if (s.stats[k] === undefined) s.stats[k] = fresh.stats[k];
+  setSound(s.settings.sound);
+  G.checkGoals(s);
+  tab = 'stand';
+  render();
+  if (s.inDay) {
+    // The app was closed in the middle of a day: give back today's costs and replay it.
+    s.cash = G.r2(s.cash + s.inDay.costs.total);
+    delete s.inDay;
+    G.save(s);
+    render();
+    toast('Welcome back! Your stand is ready to open again. 🍋');
+  }
+  if (s.tutorial === 0) showIntro(0);
+}
+
+function showWelcome(slot = G.activeSlot()) {
   let diff = 'easy';
   const m = modal(`
     <div class="welcome-logo"><div class="l">🍋</div><h1>Lemon Lane</h1><div class="muted">Build a lemonade empire!</div></div>
     <label class="field"><span>What's your name?</span><input id="wName" maxlength="14" placeholder="Your name" autocomplete="off" /></label>
     <div class="field"><span>How hard?</span>
       <div class="choice-row">
-        <button class="choice on" data-d="easy"><div class="ci">😊</div><div class="cn">Easy</div><div class="cd">More customers, fresher lemons, better forecasts</div></button>
-        <button class="choice" data-d="normal"><div class="ci">😎</div><div class="cn">Normal</div><div class="cd">A real business challenge</div></button>
+        ${Object.entries(DIFFS).map(([id, d]) => `<button class="choice ${id === diff ? 'on' : ''}" data-d="${id}"><div class="ci">${d.icon}</div><div class="cn">${d.name}</div><div class="cd">${d.blurb}</div></button>`).join('')}
       </div></div>
-    <div class="actions"><button class="btn green big" id="wGo">🍋 Start my stand!</button></div>`, { closable: false });
+    <div class="actions"><button class="btn green big" id="wGo">🍋 Start my stand!</button></div>`, { closable: !!s });
   m.querySelectorAll('.choice').forEach((b) => b.addEventListener('click', () => {
     diff = b.dataset.d;
     m.querySelectorAll('.choice').forEach((x) => x.classList.toggle('on', x === b));
@@ -866,6 +918,8 @@ function showWelcome() {
   }));
   m.querySelector('#wGo').addEventListener('click', () => {
     const name = m.querySelector('#wName').value;
+    if (s) G.save(s);
+    G.useSlot(slot);
     s = G.newGame({ name, difficulty: diff });
     setSound(s.settings.sound);
     G.save(s);
@@ -925,7 +979,29 @@ const actions = {
   settings: () => showSettings(),
   toggleSound: () => { s.settings.sound = !s.settings.sound; setSound(s.settings.sound); G.save(s); closeModal(); showSettings(); },
   askReset: () => askReset(),
-  doReset: () => { G.wipe(); closeAllModals(); s = null; showWelcome(); },
+  doReset: () => { G.wipe(); closeAllModals(); s = null; $('#hud').innerHTML = ''; showWelcome(); },
+  slots: () => showSlots(),
+  newSlot: (d) => { sfx.tap(); showWelcome(+d.i); },
+  playSlot: (d) => {
+    const next = G.load(+d.i);
+    if (!next) return;
+    if (s) G.save(s);
+    G.useSlot(+d.i);
+    s = next;
+    closeAllModals();
+    sfx.tap();
+    startLoaded();
+  },
+  askDeleteSlot: (d) => askDeleteSlot(+d.i),
+  doDeleteSlot: (d) => {
+    const i = +d.i;
+    if (s && i === G.activeSlot()) return;
+    G.wipe(i);
+    closeAllModals();
+    sfx.tap();
+    if (G.listSlots().some(Boolean)) showSlots();
+    else showWelcome();
+  },
   loc: (d) => {
     const loc = LOCATIONS.find((l) => l.id === d.id);
     if (s.unlocked.includes(d.id)) { s.location = d.id; sfx.tap(); commit(); return; }
@@ -1012,7 +1088,7 @@ document.addEventListener('click', (e) => {
   if (!el || el.disabled) return;
   if (el.tagName === 'A') e.preventDefault();
   const fn = actions[el.dataset.a];
-  if (fn && (s || ['closeModal', 'doReset'].includes(el.dataset.a))) fn(el.dataset, el);
+  if (fn && (s || ['closeModal', 'doReset', 'newSlot', 'playSlot', 'askDeleteSlot', 'doDeleteSlot'].includes(el.dataset.a))) fn(el.dataset, el);
 });
 
 let resizeT = 0;
@@ -1036,26 +1112,11 @@ if (Capacitor.isNativePlatform()) {
 // ───────── Boot ─────────
 function boot() {
   s = G.load();
-  if (s) {
-    // Fill in anything added in newer versions.
-    const fresh = G.newGame({});
-    for (const k of Object.keys(fresh)) if (s[k] === undefined) s[k] = fresh[k];
-    for (const k of Object.keys(fresh.stats)) if (s.stats[k] === undefined) s.stats[k] = fresh.stats[k];
-    setSound(s.settings.sound);
-    G.checkGoals(s);
-    render();
-    if (s.inDay) {
-      // The app was closed in the middle of a day: give back today's costs and replay it.
-      s.cash = G.r2(s.cash + s.inDay.costs.total);
-      delete s.inDay;
-      G.save(s);
-      render();
-      toast('Welcome back! Your stand is ready to open again. 🍋');
-    }
-    if (s.tutorial === 0) showIntro(0);
-  } else {
+  if (s) startLoaded();
+  else {
     $('#hud').innerHTML = '';
-    showWelcome();
+    if (G.listSlots().some(Boolean)) showSlots();
+    else showWelcome();
   }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (s && tab === 'stand') paintPreview(); });
 }

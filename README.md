@@ -13,7 +13,7 @@ A lemonade-stand tycoon game for kids that teaches money and business basics. Bu
 - **Evening report:** money in vs. profit, supplies used, waste, rent and wages, plus advice from Zest the lemon.
 - **Progress:** 32 goals, 8 ranks, 6 places to sell (street → park → beach → downtown → stadium → summer fair), 5 stand tiers (crate → café), 11 upgrades, 3 staff, and 8 businesses that earn money every day. Reach **$100,000 net worth** to become a Lemonade Tycoon.
 - **Money skills:** a savings account with weekly compound interest, loans with interest, decision events (insurance, investing in a friend's idea, opportunity cost), a daily Money Quiz, and 16 lessons in Zest's Money Notebook.
-- **Easy** and **Normal** difficulty. No ads, no accounts, no in-app purchases. Your progress is saved on the device.
+- **Easy**, **Normal** and **Hard** difficulty, and up to **3 save files** (switch games from ⚙️ Settings). No ads, no accounts, no in-app purchases. Your progress is saved on the device.
 
 ## Installing on an Amazon Fire / Fire Kids tablet
 

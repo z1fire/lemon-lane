@@ -1,5 +1,5 @@
 // Headless balance check: a reasonable bot plays many games; prints when milestones happen.
-// Usage: node scripts/balance.mjs [games] [days] [easy|normal]
+// Usage: node scripts/balance.mjs [games] [days] [easy|normal|hard]
 import { LOCATIONS, TIERS, UPGRADES, BUSINESSES, STAFF, ADS, GOALS, netWorth } from '../src/data.js';
 import * as G from '../src/state.js';
 import { simulateDay, iceIdeal, baseWTP, expectedTraffic, stopChance, serviceMinutes } from '../src/sim.js';

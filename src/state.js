@@ -62,16 +62,30 @@ export function newGame({ name = '', difficulty = 'easy' } = {}) {
   return s;
 }
 
+// ───────── Save files ─────────
+// Up to SLOTS games, each under its own key (slot 0 keeps the original key so old saves carry over).
+export const SLOTS = 3;
+const ACTIVE_KEY = 'lemonlane.slot';
+const slotKey = (i) => (i ? `${SAVE_KEY}.${i}` : SAVE_KEY);
+let active = 0;
+try { active = Math.max(0, Math.min(SLOTS - 1, +localStorage.getItem(ACTIVE_KEY) || 0)); } catch (e) { /* ignore */ }
+
+export const activeSlot = () => active;
+export function useSlot(i) {
+  active = i;
+  try { localStorage.setItem(ACTIVE_KEY, String(i)); } catch (e) { /* ignore */ }
+}
+
 export function save(s) {
   try {
     const json = JSON.stringify(s);
-    localStorage.setItem(SAVE_KEY, json);
-    localStorage.setItem(SAVE_KEY + '.bak', json);
+    localStorage.setItem(slotKey(active), json);
+    localStorage.setItem(slotKey(active) + '.bak', json);
   } catch (e) { /* storage full or blocked: keep playing */ }
 }
 
-export function load() {
-  for (const key of [SAVE_KEY, SAVE_KEY + '.bak']) {
+export function load(slot = active) {
+  for (const key of [slotKey(slot), slotKey(slot) + '.bak']) {
     try {
       const raw = localStorage.getItem(key);
       if (!raw) continue;
@@ -82,8 +96,18 @@ export function load() {
   return null;
 }
 
-export function wipe() {
-  try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(SAVE_KEY + '.bak'); } catch (e) { /* ignore */ }
+// A short summary of every slot (null for an empty one), for the save-file picker.
+export function listSlots() {
+  const out = [];
+  for (let i = 0; i < SLOTS; i++) {
+    const s = load(i);
+    out.push(s ? { name: s.name, difficulty: s.difficulty, day: s.day, networth: netWorth(s), won: s.won } : null);
+  }
+  return out;
+}
+
+export function wipe(slot = active) {
+  try { localStorage.removeItem(slotKey(slot)); localStorage.removeItem(slotKey(slot) + '.bak'); } catch (e) { /* ignore */ }
 }
 
 // ───────── Calendar & weather ─────────
@@ -111,7 +135,7 @@ function rollWeather(s) {
   const today = { type, temp };
 
   // The forecast is usually right — but not always.
-  const accuracy = s.difficulty === 'easy' ? 0.88 : 0.72;
+  const accuracy = { easy: 0.88, normal: 0.72, hard: 0.6 }[s.difficulty] || 0.72;
   let fType = type;
   if (Math.random() > accuracy) {
     const i = WEATHER_ORDER.indexOf(type) + (Math.random() < 0.5 ? -1 : 1);
@@ -131,6 +155,7 @@ function rollMarket(s) {
     let p = SUPPLIES[k].base * (1 + SUPPLIES[k].swing * s.trend[k]);
     if (m[k]) p *= m[k];
     if (k === 'lemons' && s.biz.orchard) p *= 0.6;
+    if (s.difficulty === 'hard') p *= 1.1;
     s.market[k] = Math.max(0.004, p);
   }
 }
